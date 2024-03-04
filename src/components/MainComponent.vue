@@ -83,8 +83,8 @@ interface Demand {
 }
 
 const resources = ref<Resource[]>([
-  { name: '木', count: 101 },
-  { name: '鉄', count: 10 },
+  { name: '木', count: 0 },
+  { name: '鉄', count: 0 },
   { name: '麦', count: 0 },
   { name: '羊毛', count: 0 },
 ]);
