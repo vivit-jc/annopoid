@@ -11,12 +11,12 @@
       </ul>
       <div>
         　建築<br />
-        <q-btn @click="clickbuildBtn(factorys, resources)"
-          >{{ factorys.name }}を建てる　</q-btn
+        <q-btn @click="clickbuildBtn(factories, resources)"
+          >{{ factories.name }}を建てる　</q-btn
         >
       </div>
       　建物<br />
-      <div v-for="factory in factorys" :key="factory.name">
+      <div v-for="factory in factories" :key="factory.name">
         {{ factory.name }}:{{ factory.count }}
         消費 {{ factory.consume_resources_name}}:{{ factory.consume_resources_count}}
         ワーカータイプ:{{ factory.consume_worker_name}}
@@ -99,7 +99,7 @@ const demand_data: Demand[] = [
 
 let demands = ref<Demand[]>(demand_data);
 
-const factorys = ref<Factory[]>([
+const factories = ref<Factory[]>([
   {name: 'パン工場',
     count: 0,
     cost: 10,
