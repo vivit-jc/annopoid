@@ -11,13 +11,20 @@
       </ul>
       <div>
         　建築<br />
-        <q-btn @click="clickbuildBtn(buildings, resources)"
-          >{{ buildings.name }}を建てる　</q-btn
+        <q-btn @click="clickbuildBtn(factories, resources)"
+          >{{ factories.name }}を建てる　</q-btn
         >
       </div>
-      　
-      <div v-for="building in buildings" :key="building.name">
-        建物 {{ building.name }}:{{ building.count }}
+      　建物<br />
+      <div v-for="factory in factories" :key="factory.name">
+        {{ factory.name }}:{{ factory.count }}
+        消費 {{ factory.consume_resources_name}}:{{ factory.consume_resources_count}}
+        ワーカータイプ:{{ factory.consume_worker_name}}
+        生産 {{ factory.produce_resources_name}}:{{ factory.produce_resources_count}}
+      </div>
+      ワーカー<br />
+      <div v-for="worker in workers" :key="worker.name">
+        {{ worker.name }}:{{ worker.current_count }}/{{worker.total_count}}
       </div>
     </div>
     <div class="col-6">
@@ -60,33 +67,22 @@ import { addPost } from '../utils/firebase/write';
 import { getPosts } from '../utils/firebase/read';
 import { useRoute } from 'vue-router';
 import { Notify } from 'quasar';
+import { Post, Resource, Demand, Factory, Worker} from './models';
 
 let name = ref();
 let text = ref();
 let posts = ref([] as Post[]);
 const route = useRoute();
 
-interface Resource {
-  name: string;
-  count: number;
-}
 
-interface Post {
-  name: string;
-  text: string;
-  timestamp: number;
-}
-
-interface Demand {
-  type: string;
-  demand: Resource[];
-}
 
 const resources = ref<Resource[]>([
   { name: '木', count: 0 },
   { name: '鉄', count: 0 },
   { name: '麦', count: 0 },
   { name: '羊毛', count: 0 },
+  { name: 'パン', count: 0 },
+
 ]);
 
 const demand_data: Demand[] = [
@@ -102,7 +98,25 @@ const demand_data: Demand[] = [
 ];
 
 let demands = ref<Demand[]>(demand_data);
-const buildings = ref<Resource[]>([{ name: '家', count: 0 }]);
+
+const factories = ref<Factory[]>([
+  {name: 'パン工場',
+    count: 0,
+    cost: 10,
+    consume_resources_name: '麦',
+    consume_resources_count: 2,
+    consume_worker_name: '労働者',
+    produce_resources_name: 'パン',
+    produce_resources_count: 1
+  }]);
+
+const workers = ref<Worker[]>([
+  { name: '労働者', 
+    total_count: 0,
+    current_count: 0,
+    return_time: 600,
+    get_demand: '未定'
+  }]);
 
 watch(route, (n, p) => {
   location.reload();
@@ -122,9 +136,9 @@ function clickBtn(resource: any) {
   return true;
 }
 
-function clickbuildBtn(building: any, resource: any) {
+function clickbuildBtn(factory: any, resource: any) {
   if (resource.count >= 10) {
-    building.count += 1;
+    factory.count += 1;
     resource.count -= 10;
     return true;
   }
