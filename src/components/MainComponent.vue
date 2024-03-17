@@ -1,116 +1,124 @@
 <template>
-  <div>
-    資源
-    <q-btn
-      v-for="resource in resources"
-      :key="resource.name"
-      @click="clickBtn(resource)"
-    >
-      {{ resource.name }}:{{ resource.count }}
-    </q-btn>
-    <div>
-      　建築
-      <q-btn @click="clickbuildBtn(buildings, resources)"
-        >{{ buildings.name }}を建てる　</q-btn
-      >
+  <div class="row">
+    <div class="col-3">
+      資源<br />
+      <ul>
+        <li v-for="resource in resources" :key="resource.name">
+          <q-btn @click="clickBtn(resource)">
+            {{ resource.name }}:{{ resource.count }}
+          </q-btn>
+        </li>
+      </ul>
+      <div>
+        　建築<br />
+        <q-btn @click="clickbuildBtn(factories, resources)"
+          >{{ factories.name }}を建てる　</q-btn
+        >
+      </div>
+      　建物<br />
+      <div v-for="factory in factories" :key="factory.name">
+        {{ factory.name }}:{{ factory.count }}
+        消費 {{ factory.consume_resources_name}}:{{ factory.consume_resources_count}}
+        ワーカータイプ:{{ factory.consume_worker_name}}
+        生産 {{ factory.produce_resources_name}}:{{ factory.produce_resources_count}}
+      </div>
+      ワーカー<br />
+      <div v-for="worker in workers" :key="worker.name">
+        {{ worker.name }}:{{ worker.current_count }}/{{worker.total_count}}
+      </div>
     </div>
-    　
-    <div v-for="building in buildings" :key="building.name">
-      建物 {{ building.name }}:{{ building.count }}
+    <div class="col-6">
+    <BBSComponent></BBSComponent>
     </div>
-    <q-input v-model="name" label="名前" />
-    <q-input v-model="text" label="内容" />
-    <q-btn label="送信" color="primary" @click="submit()" />
-    <table border="1">
-      <tr>
-        <th>名前</th>
-        <th>内容</th>
-        <th>時刻</th>
-      </tr>
-      <tr v-for="p in posts" :key="p.timestamp">
-        <td>{{ p.name }}</td>
-        <td>{{ p.text }}</td>
-        <td>{{ strDate(p.timestamp) }}</td>
-      </tr>
-    </table>
+    <div class="col-3">
+      要求<br />
+      <ul>
+        <li v-for="(demand, index) in demands" :key="index" class="people">
+          <div>
+            {{ demand.type }}<br />
+            <span v-for="d in demand.demand" :key="d.name">
+              {{ d.name }}:{{ d.count }}<br />
+            </span>
+          </div>
+          <q-btn color="black">要求を満たす</q-btn>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
-import { addPost } from '../utils/firebase/write';
-import { getPosts } from '../utils/firebase/read';
-import { useRoute } from 'vue-router';
-import { Notify } from 'quasar';
-
-let name = ref();
-let text = ref();
-let posts = ref([] as Post[]);
-const route = useRoute();
-
-interface Resource {
-  name: string;
-  count: number;
-}
-
-interface Post {
-  name: string;
-  text: string;
-  timestamp: number;
-}
+import { ref } from 'vue';
+import { Resource, Demand, Factory, Worker} from './models';
+import BBSComponent from 'components/BBSComponent.vue';
 
 const resources = ref<Resource[]>([
-  { name: '木', count: 101 },
-  { name: '鉄', count: 10 },
+  { name: '木', count: 0 },
+  { name: '鉄', count: 0 },
   { name: '麦', count: 0 },
   { name: '羊毛', count: 0 },
+  { name: 'パン', count: 0 },
+
 ]);
 
-const buildings = ref<Resource[]>([{ name: '家', count: 0 }]);
+const demand_data: Demand[] = [
+  {
+    type: '農民',
+    demand: [
+      { name: '羊毛', count: rand(3) + 1 },
+      { name: '麦', count: rand(3) + 1 },
+    ],
+  },
+  { type: '農民', demand: [{ name: '鉄', count: rand(3) + 1 }] },
+  { type: '労働者', demand: [{ name: '木', count: rand(3) + 1 }] },
+];
 
-watch(route, (n, p) => {
-  location.reload();
-});
+let demands = ref<Demand[]>(demand_data);
 
-onMounted(() => {
-  getPosts((data: any) => {
-    Object.keys(data).forEach((e) => {
-      posts.value.push(data[e]);
-    });
-    posts.value.sort((a, b) => b.timestamp - a.timestamp);
-  });
-});
+const factories = ref<Factory[]>([
+  {name: 'パン工場',
+    count: 0,
+    cost: 10,
+    consume_resources_name: '麦',
+    consume_resources_count: 2,
+    consume_worker_name: '労働者',
+    produce_resources_name: 'パン',
+    produce_resources_count: 1
+  }]);
+
+const workers = ref<Worker[]>([
+  { name: '労働者', 
+    total_count: 0,
+    current_count: 0,
+    return_time: 600,
+    get_demand: '未定'
+  }]);
+
 
 function clickBtn(resource: any) {
   resource.count += 1;
   return true;
 }
 
-function clickbuildBtn(building: any, resource: any) {
+function clickbuildBtn(factory: any, resource: any) {
   if (resource.count >= 10) {
-    building.count += 1;
+    factory.count += 1;
     resource.count -= 10;
     return true;
   }
 }
 
-function submit() {
-  addPost(makePostData());
-  Notify.create('送信しました');
-  return false;
-}
-
-function makePostData() {
-  let post = {
-    name: name.value,
-    text: text.value,
-  };
-  return post;
-}
-function strDate(ts: number) {
-  const date = new Date(ts);
-  return (
-    date.getFullYear() + '/' + (date.getMonth() + 1) + '/' + date.getDate()
-  );
+function rand(n: number) {
+  return Math.floor(Math.random() * n);
 }
 </script>
+
+<style scoped>
+li {
+  list-style: none;
+}
+.people {
+  background-color: aqua;
+  margin-bottom: 5px;
+}
+</style>
