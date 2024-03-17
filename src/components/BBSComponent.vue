@@ -23,7 +23,7 @@ import { ref, onMounted, watch } from 'vue';
 import { addPost } from '../utils/firebase/write';
 import { useRoute } from 'vue-router';
 import { Notify } from 'quasar';
-import { getPosts } from '../utils/firebase/read';
+import { getPosts, monitoringPosts } from '../utils/firebase/read';
 import { Post } from './models';
 
 let name = ref();
@@ -37,13 +37,27 @@ watch(route, (n, p) => {
 });
 
 onMounted(() => {
+  // 初回データ取得
   getPosts((data: any) => {
-    Object.keys(data).forEach((e) => {
-      posts.value.push(data[e]);
-    });
+    // データをクリアして新しいデータを追加
+    posts.value.splice(0, posts.value.length, ...Object.values(data));
+    // タイムスタンプでソート
+    posts.value.sort((a, b) => b.timestamp - a.timestamp);
+  });
+
+  // データの監視
+  monitoringPosts((data: any) => {
+    // 新しいデータを取得
+    const newData = Object.values(data);
+
+    // 既存のデータを全て削除してから新しいデータを追加
+  　posts.value = newData;
+
+    // タイムスタンプでソート
     posts.value.sort((a, b) => b.timestamp - a.timestamp);
   });
 });
+
 
 function submit() {
   addPost(makePostData());
